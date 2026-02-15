@@ -233,24 +233,24 @@ PaymentSchema.statics.calculatePaystackFee = function(amount: number): number {
 };
 
 // Calculate total amount including fees
-PaymentSchema.statics.calculateTotalAmount = function(subtotal: number): {
-  subtotal: number;
-  platformFee: number;
-  paystackFee: number;
-  total: number;
-} {
-  const platformFee = this.calculatePlatformFee(subtotal);
-  const amountWithPlatformFee = subtotal + platformFee;
-  const paystackFee = this.calculatePaystackFee(amountWithPlatformFee);
-  const total = amountWithPlatformFee + paystackFee;
+// PaymentSchema.statics.calculateTotalAmount = function(subtotal: number): {
+//   subtotal: number;
+//   platformFee: number;
+//   paystackFee: number;
+//   total: number;
+// } {
+//   const platformFee = this.calculatePlatformFee(subtotal);
+//   const amountWithPlatformFee = subtotal + platformFee;
+//   const paystackFee = this.calculatePaystackFee(amountWithPlatformFee);
+//   const total = amountWithPlatformFee + paystackFee;
 
-  return {
-    subtotal,
-    platformFee,
-    paystackFee,
-    total: Math.round(total * 100) / 100,
-  };
-};
+//   return {
+//     subtotal,
+//     platformFee,
+//     paystackFee,
+//     total: Math.round(total * 100) / 100,
+//   };
+// };
 
 // ==================== PRE-SAVE HOOKS ====================
 PaymentSchema.pre('save', function(next) {

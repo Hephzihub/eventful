@@ -16,13 +16,29 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
+import { ApiProperty } from '@nestjs/swagger';
+
+export class CoordinatesDto {
+  @ApiProperty({ description: 'Latitude', example: 6.5244 })
+  @IsNumber()
+  @Min(-90)
+  lat: number;
+
+  @ApiProperty({ description: 'Longitude', example: 3.3792 })
+  @IsNumber()
+  @Min(-180)
+  lng: number;
+}
+
 // Venue DTO
 export class VenueDto {
+  @ApiProperty({ description: 'Venue name', example: 'Eko Hotel' })
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
   name: string;
 
+  @ApiProperty({ description: 'Venue address', example: 'Victoria Island, Lagos' })
   @IsString()
   @IsNotEmpty()
   @MinLength(5)
@@ -44,16 +60,6 @@ export class VenueDto {
   @ValidateNested()
   @Type(() => CoordinatesDto)
   coordinates?: CoordinatesDto;
-}
-
-export class CoordinatesDto {
-  @IsNumber()
-  @Min(-90)
-  lat: number;
-
-  @IsNumber()
-  @Min(-180)
-  lng: number;
 }
 
 // Schedule DTO

@@ -19,6 +19,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from 'src/auth/decorators/public.decorators';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('events')
 export class EventController {
@@ -32,6 +33,8 @@ export class EventController {
    */
   @Public()
   @Get()
+  @ApiOperation({ summary: 'Get all published events' })
+  @ApiResponse({ status: 200, description: 'List of published events' })
   async getAllEvents(@Query() queryDto: QueryEventsDto) {
     return this.eventService.getAllEvents(queryDto);
   }

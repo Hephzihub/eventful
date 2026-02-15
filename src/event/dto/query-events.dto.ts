@@ -7,34 +7,36 @@ import {
   Max,
   IsDateString,
 } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 export class QueryEventsDto {
-  // Category filter
+  @ApiProperty({ description: 'Category filter', enum: ['Concerts', 'Theater', 'Sports', 'Culture', 'Comedy', 'Festival'], required: false })
   @IsEnum(['Concerts', 'Theater', 'Sports', 'Culture', 'Comedy', 'Festival'])
   @IsOptional()
   category?: string;
 
-  // Event type filter
+  @ApiProperty({ description: 'Event type filter', enum: ['physical', 'online', 'hybrid'], required: false })
   @IsEnum(['physical', 'online', 'hybrid'])
   @IsOptional()
   eventType?: string;
 
-  // Status filter
+  @ApiProperty({ description: 'Status filter', enum: ['draft', 'published', 'cancelled', 'completed'], required: false, default: 'published' })
   @IsEnum(['draft', 'published', 'cancelled', 'completed'])
   @IsOptional()
-  status?: string = 'published'; // Default to published for public queries
+  status?: string = 'published';
 
-  // Location filters
+  @ApiProperty({ description: 'City filter', required: false })
   @IsString()
   @IsOptional()
   city?: string;
 
+  @ApiProperty({ description: 'State filter', required: false })
   @IsString()
   @IsOptional()
   state?: string;
 
-  // Price range filters
+  @ApiProperty({ description: 'Minimum price', required: false })
   @IsNumber()
   @Min(0)
   @Type(() => Number)

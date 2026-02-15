@@ -78,7 +78,8 @@ export class AuthService {
   async login(user: any) {
 
     const accessToken = this.generateAccessToken(user);
-    return { message: 'Login successful', accessToken, user };
+    // const { password, ...userWithoutPassword } = user;
+    return { message: 'Login successful', accessToken};
   }
 
   private generateAccessToken(user: User): string {
