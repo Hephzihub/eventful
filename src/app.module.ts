@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -8,6 +8,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { EventModule } from './event/event.module';
 import { TicketModule } from './ticket/ticket.module';
 import { PaymentModule } from './payment/payment.module';
+import { LogTokenMiddleware } from './auth/middleware/log-token.middleware';
 
 @Module({
   imports: [
@@ -30,4 +31,10 @@ import { PaymentModule } from './payment/payment.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    if (process.env.NODE_ENV === 'production') {
+      consumer.apply(LogTokenMiddleware).forRoutes('*');
+    }
+  }
+}

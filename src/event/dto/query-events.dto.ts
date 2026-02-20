@@ -11,65 +11,77 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 export class QueryEventsDto {
-  @ApiProperty({ description: 'Category filter', enum: ['Concerts', 'Theater', 'Sports', 'Culture', 'Comedy', 'Festival'], required: false })
+  @ApiProperty({
+    description: 'Filter by event category',
+    enum: ['Concerts', 'Theater', 'Sports', 'Culture', 'Comedy', 'Festival'],
+    required: false,
+  })
   @IsEnum(['Concerts', 'Theater', 'Sports', 'Culture', 'Comedy', 'Festival'])
   @IsOptional()
   category?: string;
 
-  @ApiProperty({ description: 'Event type filter', enum: ['physical', 'online', 'hybrid'], required: false })
+  @ApiProperty({ description: 'Filter by event format', enum: ['physical', 'online', 'hybrid'], required: false })
   @IsEnum(['physical', 'online', 'hybrid'])
   @IsOptional()
   eventType?: string;
 
-  @ApiProperty({ description: 'Status filter', enum: ['draft', 'published', 'cancelled', 'completed'], required: false, default: 'published' })
+  @ApiProperty({
+    description: 'Filter by status. Leave as default for public browsing.',
+    enum: ['draft', 'published', 'cancelled', 'completed'],
+    required: false,
+    default: 'published',
+  })
   @IsEnum(['draft', 'published', 'cancelled', 'completed'])
   @IsOptional()
   status?: string = 'published';
 
-  @ApiProperty({ description: 'City filter', required: false })
+  @ApiProperty({ description: 'Filter by venue city. Case-insensitive partial match.', example: 'Lagos', required: false })
   @IsString()
   @IsOptional()
   city?: string;
 
-  @ApiProperty({ description: 'State filter', required: false })
+  @ApiProperty({ description: 'Filter by venue state. Case-insensitive partial match.', example: 'Lagos', required: false })
   @IsString()
   @IsOptional()
   state?: string;
 
-  @ApiProperty({ description: 'Minimum price', required: false })
+  @ApiProperty({ description: 'Minimum ticket price filter', example: 5000, minimum: 0, required: false })
   @IsNumber()
   @Min(0)
   @Type(() => Number)
   @IsOptional()
   minPrice?: number;
 
+  @ApiProperty({ description: 'Maximum ticket price filter', example: 50000, minimum: 0, required: false })
   @IsNumber()
   @Min(0)
   @Type(() => Number)
   @IsOptional()
   maxPrice?: number;
 
-  // Date range filters
+  @ApiProperty({ description: 'Return events starting on or after this date', example: '2026-01-01T00:00:00Z', required: false })
   @IsDateString()
   @IsOptional()
-  startDate?: string; // Events starting after this date
+  startDate?: string;
 
+  @ApiProperty({ description: 'Return events starting on or before this date', example: '2026-12-31T00:00:00Z', required: false })
   @IsDateString()
   @IsOptional()
-  endDate?: string; // Events starting before this date
+  endDate?: string;
 
-  // Search query
+  @ApiProperty({ description: 'Full-text search across title and description', example: 'Burna Boy', required: false })
   @IsString()
   @IsOptional()
-  search?: string; // Search in title and description
+  search?: string;
 
-  // Pagination
+  @ApiProperty({ description: 'Pagination page number', example: 1, minimum: 1, required: false, default: 1 })
   @IsNumber()
   @Min(1)
   @Type(() => Number)
   @IsOptional()
   page?: number = 1;
 
+  @ApiProperty({ description: 'Results per page', example: 20, minimum: 1, maximum: 100, required: false, default: 20 })
   @IsNumber()
   @Min(1)
   @Max(100)
@@ -77,25 +89,28 @@ export class QueryEventsDto {
   @IsOptional()
   limit?: number = 20;
 
-  // Sorting
+  @ApiProperty({ description: 'Sort field', enum: ['date', 'price', 'popular', 'newest'], required: false, default: 'date' })
   @IsEnum(['date', 'price', 'popular', 'newest'])
   @IsOptional()
-  sort?: string = 'date'; // Default sort by date
+  sort?: string = 'date';
 
+  @ApiProperty({ description: 'Sort direction', enum: ['asc', 'desc'], required: false, default: 'asc' })
   @IsEnum(['asc', 'desc'])
   @IsOptional()
-  order?: string = 'asc'; // Default ascending
+  order?: string = 'asc';
 
-  // Feature filters
+  @ApiProperty({ description: 'Return only featured events', required: false })
   @IsOptional()
   @Type(() => Boolean)
   isFeatured?: boolean;
 
+  @ApiProperty({ description: 'Return only currently live events', required: false })
   @IsOptional()
   @Type(() => Boolean)
   isLive?: boolean;
 
+  @ApiProperty({ description: 'Exclude fully sold out events', required: false })
   @IsOptional()
   @Type(() => Boolean)
-  excludeSoldOut?: boolean; // Exclude sold out events
+  excludeSoldOut?: boolean;
 }

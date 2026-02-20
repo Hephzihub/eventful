@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { BadRequestException } from '@nestjs/common';
 
 export type EventDocument = Event & Document & {
   totalTicketsSold: number;
@@ -249,7 +250,7 @@ EventSchema.pre('save', function () {
   );
 
   if (totalTierQuantity > this.capacity) {
-    throw new Error(
+    throw new BadRequestException(
       'Total ticket tier quantities cannot exceed event capacity',
     );
   }
@@ -259,7 +260,9 @@ EventSchema.pre('save', function () {
     (this.eventType === 'physical' || this.eventType === 'hybrid') &&
     !this.venue
   ) {
-    throw new Error('Venue is required for physical and hybrid events');
+    throw new BadRequestException(
+      'Venue is required for physical and hybrid events',
+    );
   }
 
   // Ensure meeting link is provided for online/hybrid events
@@ -267,24 +270,27 @@ EventSchema.pre('save', function () {
     (this.eventType === 'online' || this.eventType === 'hybrid') &&
     !this.meetingLink
   ) {
-    throw new Error('Meeting link is required for online and hybrid events');
+    throw new BadRequestException(
+      'Meeting link is required for online and hybrid events',
+    );
   }
 
-  // Validate dates
+  // Validate event dates
   if (this.schedule.startDate >= this.schedule.endDate) {
-    throw new Error('Event end date must be after start date');
+    throw new BadRequestException('Event end date must be after start date');
   }
 
-  // Validate ticket sales dates
+  // Validate ticket sales dates per tier
   for (const tier of this.ticketTiers) {
     if (tier.salesStart >= tier.salesEnd) {
-      throw new Error(
+      throw new BadRequestException(
         `Ticket tier "${tier.name}" sales end date must be after sales start date`,
       );
     }
 
-    if (tier.salesEnd > this.schedule.startDate) {
-      throw new Error(
+    // Fixed: use >= so sales cannot still be open at the exact moment the event starts
+    if (tier.salesEnd >= this.schedule.startDate) {
+      throw new BadRequestException(
         `Ticket tier "${tier.name}" sales must end before event starts`,
       );
     }

@@ -1,13 +1,13 @@
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from 'src/users/user.schema';
 import { JwtService } from '@nestjs/jwt';
-// import { ConfigService } from '@nestjs/config';
 import { CreateUserDto } from './dto/register.dto';
 
 @Injectable()
@@ -17,40 +17,28 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async register(CreateUserDto: CreateUserDto) {
-    // Check if user already exists
+  async register(createUserDto: CreateUserDto) {
     const existingUser = await this.userModel.findOne({
-      email: CreateUserDto.email.toLowerCase(),
+      email: createUserDto.email.toLowerCase(),
     });
 
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
     }
 
-    // Validate all required fields
-    if (
-      !CreateUserDto.email ||
-      !CreateUserDto.password ||
-      !CreateUserDto.role ||
-      !CreateUserDto.profile ||
-      !CreateUserDto.profile.fullName ||
-      !CreateUserDto.profile.phone
-    ) {
-      throw new ConflictException('All fields are required');
-    }
-
     const user = new this.userModel({
-      email: CreateUserDto.email,
-      password: CreateUserDto.password,
-      role: CreateUserDto.role,
+      email: createUserDto.email,
+      password: createUserDto.password,
+      role: createUserDto.role,
       profile: {
-        fullName: CreateUserDto.profile.fullName,
-        phone: CreateUserDto.profile.phone,
+        fullName: createUserDto.profile.fullName,
+        phone: createUserDto.profile.phone,
       },
     });
 
     await user.save();
 
+    // Generate token before toJSON() since toJSON() strips _id
     const accessToken = this.generateAccessToken(user);
 
     return { message: 'User registered successfully', accessToken, user: user.toJSON() };
@@ -59,37 +47,31 @@ export class AuthService {
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.userModel.findOne({ email }).select('+password');
     if (user && (await user.comparePassword(password))) {
-      const { password, ...result } = user.toObject();
+      const { password: _, ...result } = user.toObject();
       return result;
     }
     return null;
   }
 
   async validateUserById(userId: string): Promise<User | null> {
-    const user = await this.userModel.findById(userId);
-
-    if (user) {
-      return user;
-    }
-
-    return null;
+    return this.userModel.findById(userId);
   }
 
   async login(user: any) {
-
     const accessToken = this.generateAccessToken(user);
-    // const { password, ...userWithoutPassword } = user;
-    return { message: 'Login successful', accessToken};
+    return { message: 'Login successful', accessToken };
   }
 
   private generateAccessToken(user: User): string {
+    if (!user._id) {
+      throw new InternalServerErrorException('Cannot generate token: user._id is missing');
+    }
     const payload = { sub: user._id, email: user.email, role: user.role };
     return this.jwtService.sign(payload);
   }
 
   async getCurrentUser(userId: string): Promise<User> {
     const user = await this.userModel.findById(userId);
-
     if (!user) {
       throw new UnauthorizedException('User not found');
     }

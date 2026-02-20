@@ -31,10 +31,17 @@ export class EventService {
     }
 
     // Validate dates
-    this.validateEventDates(createEventDto.schedule.startDate, createEventDto.schedule.endDate);
+    this.validateEventDates(
+      createEventDto.schedule.startDate,
+      createEventDto.schedule.endDate,
+    );
 
     // Validate ticket tiers
-    this.validateTicketTiers(createEventDto.ticketTiers, createEventDto.capacity, new Date(createEventDto.schedule.startDate));
+    this.validateTicketTiers(
+      createEventDto.ticketTiers,
+      createEventDto.capacity,
+      new Date(createEventDto.schedule.startDate),
+    );
 
     // Create event
     const event = new this.eventModel({
@@ -70,31 +77,46 @@ export class EventService {
     }
 
     // Check if tickets have been sold
-    const ticketsSold = event.ticketTiers.reduce((sum, tier) => sum + tier.sold, 0);
+    const ticketsSold = event.ticketTiers.reduce(
+      (sum, tier) => sum + tier.sold,
+      0,
+    );
 
     // Prevent critical changes if tickets sold
     if (ticketsSold > 0) {
-      if (updateEventDto.eventType && updateEventDto.eventType !== event.eventType) {
-        throw new BadRequestException('Cannot change event type after tickets are sold');
+      if (
+        updateEventDto.eventType &&
+        updateEventDto.eventType !== event.eventType
+      ) {
+        throw new BadRequestException(
+          'Cannot change event type after tickets are sold',
+        );
       }
 
       if (updateEventDto.capacity && updateEventDto.capacity < ticketsSold) {
-        throw new BadRequestException(`Cannot reduce capacity below ${ticketsSold} (tickets already sold)`);
+        throw new BadRequestException(
+          `Cannot reduce capacity below ${ticketsSold} (tickets already sold)`,
+        );
       }
 
       // Check if event is soon (within 7 days)
       const daysUntilEvent = Math.ceil(
-        (new Date(event.schedule.startDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+        (new Date(event.schedule.startDate).getTime() - Date.now()) /
+          (1000 * 60 * 60 * 24),
       );
 
       if (daysUntilEvent <= 7 && updateEventDto.schedule) {
-        throw new BadRequestException('Cannot change event schedule within 7 days of event when tickets are sold');
+        throw new BadRequestException(
+          'Cannot change event schedule within 7 days of event when tickets are sold',
+        );
       }
     }
 
     // Validate new slug if provided
     if (updateEventDto.slug && updateEventDto.slug !== event.slug) {
-      const existingEvent = await this.eventModel.findOne({ slug: updateEventDto.slug });
+      const existingEvent = await this.eventModel.findOne({
+        slug: updateEventDto.slug,
+      });
       if (existingEvent) {
         throw new ConflictException('Event with this slug already exists');
       }
@@ -114,7 +136,7 @@ export class EventService {
       const startDate = updateEventDto.schedule?.startDate
         ? new Date(updateEventDto.schedule.startDate)
         : event.schedule.startDate;
-      
+
       this.validateTicketTiers(updateEventDto.ticketTiers, capacity, startDate);
     }
 
@@ -125,6 +147,28 @@ export class EventService {
     return {
       message: 'Event updated successfully',
       event: event.toJSON(),
+    };
+  }
+
+  async addEventImage(eventId: string, creatorId: string, imageUrl: string) {
+    const event = await this.eventModel.findById(eventId);
+
+    if (!event) throw new NotFoundException('Event not found');
+
+    if (event.creatorId.toString() !== creatorId) {
+      throw new ForbiddenException('You can only update your own events');
+    }
+
+    if (event.images.length >= 10) {
+      throw new BadRequestException('Maximum of 10 images per event');
+    }
+
+    event.images.push(imageUrl);
+    await event.save();
+
+    return {
+      message: 'Image uploaded successfully',
+      images: event.images,
     };
   }
 
@@ -142,7 +186,10 @@ export class EventService {
     }
 
     // Check if tickets have been sold
-    const ticketsSold = event.ticketTiers.reduce((sum, tier) => sum + tier.sold, 0);
+    const ticketsSold = event.ticketTiers.reduce(
+      (sum, tier) => sum + tier.sold,
+      0,
+    );
 
     if (ticketsSold > 0) {
       // Can't delete, must cancel instead
@@ -150,7 +197,8 @@ export class EventService {
       await event.save();
 
       return {
-        message: 'Event cancelled successfully. Ticket holders will be notified.',
+        message:
+          'Event cancelled successfully. Ticket holders will be notified.',
         event: event.toJSON(),
       };
     } else {
@@ -328,7 +376,7 @@ export class EventService {
 
     // Execute query with pagination
     const skip = (page - 1) * limit;
-    
+
     let events = await this.eventModel
       .find(query)
       .sort(sortObj)
@@ -342,11 +390,11 @@ export class EventService {
       events = events.filter((event) => {
         const totalAvailable = event.ticketTiers.reduce(
           (sum, tier) => sum + tier.quantity,
-          0
+          0,
         );
         const totalSold = event.ticketTiers.reduce(
           (sum, tier) => sum + tier.sold,
-          0
+          0,
         );
         return totalSold < totalAvailable;
       });
@@ -398,7 +446,11 @@ export class EventService {
   }
 
   // ==================== GET UPCOMING EVENTS ====================
-  async getUpcomingEvents(city?: string, category?: string, limit: number = 20) {
+  async getUpcomingEvents(
+    city?: string,
+    category?: string,
+    limit: number = 20,
+  ) {
     const query: any = {
       status: 'published',
       'schedule.startDate': { $gte: new Date() },
@@ -442,22 +494,26 @@ export class EventService {
     // Check capacity
     const currentTotalQuantity = event.ticketTiers.reduce(
       (sum, tier) => sum + tier.quantity,
-      0
+      0,
     );
 
     if (currentTotalQuantity + tierDto.quantity > event.capacity) {
       throw new BadRequestException(
-        `Adding this tier would exceed event capacity of ${event.capacity}`
+        `Adding this tier would exceed event capacity of ${event.capacity}`,
       );
     }
 
     // Validate tier dates
     if (new Date(tierDto.salesStart) >= new Date(tierDto.salesEnd)) {
-      throw new BadRequestException('Sales end date must be after sales start date');
+      throw new BadRequestException(
+        'Sales end date must be after sales start date',
+      );
     }
 
     if (new Date(tierDto.salesEnd) > event.schedule.startDate) {
-      throw new BadRequestException('Ticket sales must end before event starts');
+      throw new BadRequestException(
+        'Ticket sales must end before event starts',
+      );
     }
 
     // Add tier
@@ -503,7 +559,7 @@ export class EventService {
     // Can't reduce quantity below sold
     if (tierDto.quantity !== undefined && tierDto.quantity < tier.sold) {
       throw new BadRequestException(
-        `Cannot reduce quantity below ${tier.sold} (already sold)`
+        `Cannot reduce quantity below ${tier.sold} (already sold)`,
       );
     }
 
@@ -540,13 +596,13 @@ export class EventService {
     // Can't remove if tickets sold
     if (tier.sold > 0) {
       throw new BadRequestException(
-        `Cannot remove tier with ${tier.sold} tickets sold`
+        `Cannot remove tier with ${tier.sold} tickets sold`,
       );
     }
 
     // Remove tier
     event.ticketTiers = event.ticketTiers.filter(
-      (t) => t._id.toString() !== tierId
+      (t) => t._id.toString() !== tierId,
     );
 
     await event.save();
@@ -653,7 +709,7 @@ export class EventService {
 
     if (totalQuantity > capacity) {
       throw new BadRequestException(
-        `Total ticket quantity (${totalQuantity}) exceeds event capacity (${capacity})`
+        `Total ticket quantity (${totalQuantity}) exceeds event capacity (${capacity})`,
       );
     }
 
@@ -663,13 +719,13 @@ export class EventService {
 
       if (salesStart >= salesEnd) {
         throw new BadRequestException(
-          `Tier "${tier.name}": Sales end date must be after sales start date`
+          `Tier "${tier.name}": Sales end date must be after sales start date`,
         );
       }
 
       if (salesEnd > eventStartDate) {
         throw new BadRequestException(
-          `Tier "${tier.name}": Ticket sales must end before event starts`
+          `Tier "${tier.name}": Ticket sales must end before event starts`,
         );
       }
     }
@@ -678,17 +734,29 @@ export class EventService {
   private validateEventForPublishing(event: EventDocument) {
     // Check required fields
     if (!event.title || !event.description || !event.category) {
-      throw new BadRequestException('Event must have title, description, and category');
+      throw new BadRequestException(
+        'Event must have title, description, and category',
+      );
     }
 
     // Check venue for physical/hybrid
-    if ((event.eventType === 'physical' || event.eventType === 'hybrid') && !event.venue) {
-      throw new BadRequestException('Physical and hybrid events must have a venue');
+    if (
+      (event.eventType === 'physical' || event.eventType === 'hybrid') &&
+      !event.venue
+    ) {
+      throw new BadRequestException(
+        'Physical and hybrid events must have a venue',
+      );
     }
 
     // Check meeting link for online/hybrid
-    if ((event.eventType === 'online' || event.eventType === 'hybrid') && !event.meetingLink) {
-      throw new BadRequestException('Online and hybrid events must have a meeting link');
+    if (
+      (event.eventType === 'online' || event.eventType === 'hybrid') &&
+      !event.meetingLink
+    ) {
+      throw new BadRequestException(
+        'Online and hybrid events must have a meeting link',
+      );
     }
 
     // Check ticket tiers
