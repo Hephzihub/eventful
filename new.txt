@@ -25,3 +25,6 @@ async function exportSwagger() {
 }
 
 exportSwagger();
+
+
+"swagger:export": "ts-node -r tsconfig-paths/register scripts/export-swagger.ts"
