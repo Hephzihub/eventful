@@ -10,8 +10,10 @@ import { PaymentService } from './payment.service';
 import { Payment } from './payment.schema';
 import { Event } from '../event/event.schema';
 import { Ticket } from '../ticket/ticket.schema';
+import { User } from '../users/user.schema';
 import { PaystackService } from './paystack.service';
 import { TicketService } from '../ticket/ticket.service';
+import { EmailService } from '../email/email.service';
 
 const USER_ID = '507f1f77bcf86cd799439014';
 const EVENT_ID = '507f1f77bcf86cd799439012';
@@ -42,13 +44,20 @@ const makeEventDoc = (overrides: any = {}) => ({
   ...overrides,
 });
 
+const makeUserDoc = () => ({
+  email: 'test@example.com',
+  profile: { fullName: 'Test User' },
+});
+
 describe('PaymentService', () => {
   let service: PaymentService;
   let paymentModelMock: any;
   let eventModelMock: any;
   let ticketModelMock: any;
+  let userModelMock: any;
   let paystackService: any;
   let ticketService: any;
+  let emailService: any;
 
   beforeEach(async () => {
     function PaymentModelCtor(this: any, data: any) {
@@ -69,6 +78,10 @@ describe('PaymentService', () => {
     function TicketModelCtor(this: any) {}
     TicketModelCtor.aggregate = jest.fn();
     ticketModelMock = TicketModelCtor;
+
+    function UserModelCtor(this: any) {}
+    UserModelCtor.findById = jest.fn();
+    userModelMock = UserModelCtor;
 
     paystackService = {
       initializeTransaction: jest.fn().mockResolvedValue({
@@ -97,14 +110,21 @@ describe('PaymentService', () => {
       createTicketsAfterPayment: jest.fn().mockResolvedValue([{}, {}]),
     };
 
+    emailService = {
+      sendPaymentReceipt: jest.fn().mockResolvedValue(undefined),
+      sendPaymentFailed: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaymentService,
         { provide: getModelToken(Payment.name), useValue: paymentModelMock },
         { provide: getModelToken(Event.name), useValue: eventModelMock },
         { provide: getModelToken(Ticket.name), useValue: ticketModelMock },
+        { provide: getModelToken(User.name), useValue: userModelMock },
         { provide: PaystackService, useValue: paystackService },
         { provide: TicketService, useValue: ticketService },
+        { provide: EmailService, useValue: emailService },
         {
           provide: ConfigService,
           useValue: {
@@ -148,6 +168,8 @@ describe('PaymentService', () => {
     it('processes successful payment and creates tickets', async () => {
       const payment = makePaymentDoc();
       paymentModelMock.findOne.mockResolvedValue(payment);
+      userModelMock.findById.mockResolvedValue(makeUserDoc());
+      eventModelMock.findById.mockResolvedValue(makeEventDoc());
       await service.handleWebhook('charge.success', { reference: REF });
       expect(payment.status).toBe('success');
       expect(payment.isWebhookProcessed).toBe(true);
@@ -175,6 +197,8 @@ describe('PaymentService', () => {
     it('marks payment as failed', async () => {
       const payment = makePaymentDoc();
       paymentModelMock.findOne.mockResolvedValue(payment);
+      userModelMock.findById.mockResolvedValue(makeUserDoc());
+      eventModelMock.findById.mockResolvedValue(makeEventDoc());
       await service.handleWebhook('charge.failed', { reference: REF, message: 'Insufficient funds' });
       expect(payment.status).toBe('failed');
       expect(payment.save).toHaveBeenCalled();

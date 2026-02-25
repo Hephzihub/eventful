@@ -15,6 +15,8 @@ import { PaystackService } from './paystack.service';
 import { TicketService } from '../ticket/ticket.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { QueryPaymentsDto } from './dto/payment-query.dto';
+import { EmailService } from 'src/email/email.service';
+import { User, UserDocument } from 'src/users/user.schema';
 
 @Injectable()
 export class PaymentService {
@@ -24,9 +26,11 @@ export class PaymentService {
     @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
     @InjectModel(Event.name) private eventModel: Model<EventDocument>,
     @InjectModel(Ticket.name) private ticketModel: Model<TicketDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
     private paystackService: PaystackService,
     private ticketService: TicketService,
     private configService: ConfigService,
+    private emailService: EmailService
   ) {}
 
   // ==================== INITIATE PAYMENT ====================
@@ -214,8 +218,20 @@ export class PaymentService {
 
         this.logger.log(`${tickets.length} tickets created for payment: ${reference}`);
 
-        // TODO: Send email with tickets
-        // await this.emailService.sendTicketConfirmation(payment.userId, tickets);
+        const user = await this.userModel.findById(payment.userId.toString());
+        const event = await this.eventModel.findById(payment.eventId.toString());
+
+        if (user && event) {
+          // Send ticket email
+          await this.emailService.sendPaymentReceipt(
+            user.email,
+            user.profile.fullName,
+            payment,
+            event,
+          ).catch((error) => {
+            this.logger.error(`Failed to send payment receipt email: ${error.message}`);
+          });
+        }
       } catch (error) {
         this.logger.error(`Failed to create tickets: ${error.message}`);
         // Mark for manual review
@@ -247,8 +263,21 @@ export class PaymentService {
 
     this.logger.log(`Payment marked as failed: ${reference}`);
 
-    // TODO: Send failure notification
-    // await this.emailService.sendPaymentFailure(payment.userId, payment);
+    const user = await this.userModel.findById(payment.userId.toString());
+    const event = await this.eventModel.findById(payment.eventId.toString());
+
+    if (user && event) {
+      // Send payment failure email
+      await this.emailService.sendPaymentFailed(
+        user.email,
+        user.profile.fullName,
+        event,
+        payment.paystack.reference,
+        payment.failureReason || 'Payment failed',
+      ).catch((error) => {
+        this.logger.error(`Failed to send payment failure email: ${error.message}`);
+      });
+    }
   }
 
   private async handleRefundProcessed(data: any) {

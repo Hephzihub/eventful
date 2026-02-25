@@ -160,9 +160,9 @@ TicketSchema.statics.generateTicketNumber = function() {
   return `TKT-${year}-${random}${timestamp}`;
 };
 
-// ==================== PRE-SAVE HOOKS ====================
-TicketSchema.pre('save', function(next) {
-  // Auto-generate ticket number if not provided
+// ==================== PRE-VALIDATE HOOKS ====================
+TicketSchema.pre('validate', function() {
+  // Auto-generate ticket number before validation runs so the required check passes
   if (!this.ticketNumber) {
     // @ts-ignore - static method
     this.ticketNumber = this.constructor.generateTicketNumber();

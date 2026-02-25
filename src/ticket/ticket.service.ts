@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -11,13 +12,19 @@ import { Event, EventDocument } from '../event/event.schema';
 import { PurchaseTicketDto } from './dto/purchase-ticket.dto';
 import { QueryTicketsDto } from './dto/query-tickets.dto';
 import { QrCodeService } from './qr-code.service';
+import { EmailService } from 'src/email/email.service';
+import { User, UserDocument } from 'src/users/user.schema';
 
 @Injectable()
 export class TicketService {
+  private readonly logger = new Logger(TicketService.name);
+
   constructor(
     @InjectModel(Ticket.name) private ticketModel: Model<TicketDocument>,
     @InjectModel(Event.name) private eventModel: Model<EventDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
     private qrCodeService: QrCodeService,
+    private emailService: EmailService,
   ) {}
 
   // ==================== VALIDATE TICKET PURCHASE ====================
@@ -33,7 +40,9 @@ export class TicketService {
 
     // Check event is published
     if (event.status !== 'published') {
-      throw new BadRequestException('Event is not available for ticket purchase');
+      throw new BadRequestException(
+        'Event is not available for ticket purchase',
+      );
     }
 
     // Check event hasn't already happened
@@ -147,8 +156,28 @@ export class TicketService {
     tier.sold += quantity;
     await event.save();
 
-    // TODO: Send email with QR codes
-    // await this.emailService.sendTickets(userId, tickets);
+    const user = await this.userModel.findById(userId);
+    if (user) {
+      const qrCodes = await Promise.all(
+        tickets.map(async (t) => ({
+          ticketNumber: t.ticketNumber,
+          qrCodeImage: await this.qrCodeService.generateQRCodeImage(
+            t.qrCode.data,
+          ),
+        })),
+      );
+      await this.emailService
+        .sendTicketConfirmation(
+          user.email,
+          user.profile.fullName,
+          event,
+          tickets,
+          qrCodes,
+        )
+        .catch((err) =>
+          this.logger.error(`Ticket confirmation email failed: ${err.message}`),
+        );
+    }
 
     return tickets;
   }
@@ -336,7 +365,9 @@ export class TicketService {
 
     // Check if ticket already used
     if (ticket.status === 'used') {
-      throw new BadRequestException('Cannot cancel a ticket that has been scanned');
+      throw new BadRequestException(
+        'Cannot cancel a ticket that has been scanned',
+      );
     }
 
     // Check if ticket already cancelled or refunded
@@ -365,7 +396,7 @@ export class TicketService {
     if (!eventDoc) {
       throw new NotFoundException('Event not found');
     }
-    
+
     const tier = eventDoc.ticketTiers.find(
       (t) => t._id.toString() === ticket.tierId.toString(),
     );
@@ -373,6 +404,23 @@ export class TicketService {
     if (tier) {
       tier.sold -= 1;
       await eventDoc.save();
+    }
+
+    const user = await this.userModel.findById(userId);
+
+    if (user && tier) {
+      // Send cancellation email
+      await this.emailService
+        .sendCancellationConfirmation(
+          user.email,
+          user.profile.fullName,
+          event,
+          ticket,
+          tier.price,
+        )
+        .catch((err) =>
+          this.logger.error(`Cancellation email failed: ${err.message}`),
+        );
     }
 
     // TODO: Process refund via payment service
@@ -518,7 +566,11 @@ export class TicketService {
   }
 
   // ==================== SET USER REMINDER INTERVALS ====================
-  async setUserReminders(ticketId: string, userId: string, intervals: number[]) {
+  async setUserReminders(
+    ticketId: string,
+    userId: string,
+    intervals: number[],
+  ) {
     const ticket = await this.ticketModel.findById(ticketId);
 
     if (!ticket) {

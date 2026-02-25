@@ -8,7 +8,9 @@ import {
 import { TicketService } from './ticket.service';
 import { Ticket } from './ticket.schema';
 import { Event } from '../event/event.schema';
+import { User } from '../users/user.schema';
 import { QrCodeService } from './qr-code.service';
+import { EmailService } from '../email/email.service';
 
 const TICKET_ID = '507f1f77bcf86cd799439016';
 const EVENT_ID = '507f1f77bcf86cd799439012';
@@ -26,6 +28,11 @@ const makeTier = (overrides: any = {}) => ({
   salesStart: new Date(Date.now() - 3600 * 1000),
   salesEnd: new Date(Date.now() + 7 * 24 * 3600 * 1000),
   ...overrides,
+});
+
+const makeUserDoc = () => ({
+  email: 'test@example.com',
+  profile: { fullName: 'Test User' },
 });
 
 const makeEventDoc = (overrides: any = {}) => ({
@@ -66,7 +73,9 @@ describe('TicketService', () => {
   let service: TicketService;
   let ticketModelMock: any;
   let eventModelMock: any;
+  let userModelMock: any;
   let qrCodeService: any;
+  let emailService: any;
 
   beforeEach(async () => {
     function TicketModelCtor(this: any, data: any) {
@@ -85,6 +94,10 @@ describe('TicketService', () => {
     EventModelCtor.find = jest.fn();
     eventModelMock = EventModelCtor;
 
+    function UserModelCtor(this: any) {}
+    UserModelCtor.findById = jest.fn();
+    userModelMock = UserModelCtor;
+
     qrCodeService = {
       generateQRCodeData: jest.fn().mockReturnValue('encrypted-qr'),
       decryptQRCode: jest.fn().mockReturnValue({
@@ -96,12 +109,19 @@ describe('TicketService', () => {
       generateQRCodeImage: jest.fn().mockResolvedValue('data:image/png;base64,abc'),
     };
 
+    emailService = {
+      sendTicketConfirmation: jest.fn().mockResolvedValue(undefined),
+      sendCancellationConfirmation: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TicketService,
         { provide: getModelToken(Ticket.name), useValue: ticketModelMock },
         { provide: getModelToken(Event.name), useValue: eventModelMock },
+        { provide: getModelToken(User.name), useValue: userModelMock },
         { provide: QrCodeService, useValue: qrCodeService },
+        { provide: EmailService, useValue: emailService },
       ],
     }).compile();
 
@@ -268,6 +288,7 @@ describe('TicketService', () => {
       });
       const eventDoc = makeEventDoc({ ticketTiers: [makeTier({ sold: 1 })] });
       eventModelMock.findById.mockResolvedValue(eventDoc);
+      userModelMock.findById.mockResolvedValue(makeUserDoc());
       const result = await service.cancelTicket(TICKET_ID, USER_ID);
       expect(doc.cancel).toHaveBeenCalled();
       expect(result.message).toContain('cancelled successfully');
