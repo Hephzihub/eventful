@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Receipt - {{reference}}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7fa;">
+    
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f4f7fa; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #2c3e50; padding: 50px 40px; text-align: center;">
+                            <h1 style="margin: 0 0 10px 0; color: #ffffff; font-size: 32px; font-weight: 700;">💳 Payment Receipt</h1>
+                            <p style="margin: 0; color: #ffffff; font-size: 18px; opacity: 0.9;">Payment Confirmed Successfully</p>
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 45px 40px;">
+                            
+                            <p style="margin: 0 0 10px 0; font-size: 18px; color: #1a1a1a; line-height: 1.6;">
+                                Hi <strong style="color: #2c3e50;">{{userName}}</strong>,
+                            </p>
+                            <p style="margin: 0 0 35px 0; font-size: 16px; color: #555555; line-height: 1.7;">
+                                Thank you for your payment! Here's your official receipt for your ticket purchase.
+                            </p>
+
+                            <!-- Receipt Card -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border: 2px solid #e1e8ed; border-radius: 12px; margin-bottom: 35px;">
+                                <tr>
+                                    <td style="padding: 35px;">
+                                        
+                                        <h2 style="margin: 0 0 28px 0; font-size: 22px; color: #1a1a1a; font-weight: 700; text-align: center;">Transaction Details</h2>
+                                        
+                                        <!-- Transaction Info Table -->
+                                        <table width="100%" cellpadding="14" cellspacing="0" border="0" style="margin-bottom: 25px;">
+                                            <tr>
+                                                <td style="font-size: 15px; color: #888888; border-bottom: 1px solid #f0f0f0; padding-bottom: 12px;">Event:</td>
+                                                <td style="font-size: 15px; color: #1a1a1a; font-weight: 600; text-align: right; border-bottom: 1px solid #f0f0f0; padding-bottom: 12px;">{{eventTitle}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 15px; color: #888888; border-bottom: 1px solid #f0f0f0; padding: 12px 0;">Transaction ID:</td>
+                                                <td style="font-size: 14px; color: #667eea; font-weight: 600; text-align: right; font-family: 'Courier New', monospace; border-bottom: 1px solid #f0f0f0; padding: 12px 0;">{{reference}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 15px; color: #888888; border-bottom: 1px solid #f0f0f0; padding: 12px 0;">Date & Time:</td>
+                                                <td style="font-size: 15px; color: #1a1a1a; font-weight: 600; text-align: right; border-bottom: 1px solid #f0f0f0; padding: 12px 0;">{{paidAt}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 15px; color: #888888; padding-top: 12px;">Payment Method:</td>
+                                                <td style="font-size: 15px; color: #1a1a1a; font-weight: 600; text-align: right; text-transform: capitalize; padding-top: 12px;">{{paymentMethod}}</td>
+                                            </tr>
+                                        </table>
+
+                                        <!-- Items Table -->
+                                        <h3 style="margin: 30px 0 18px 0; font-size: 18px; color: #1a1a1a; font-weight: 700;">Items Purchased</h3>
+                                        <table width="100%" cellpadding="12" cellspacing="0" border="0">
+                                            {{#each tickets}}
+                                            <tr>
+                                                <td style="font-size: 15px; color: #555555; border-bottom: 1px solid #f5f5f5;">{{tierName}} × {{quantity}}</td>
+                                                <td style="font-size: 15px; color: #1a1a1a; font-weight: 600; text-align: right; border-bottom: 1px solid #f5f5f5;">{{currency}} {{total}}</td>
+                                            </tr>
+                                            {{/each}}
+                                        </table>
+
+                                        <!-- Payment Summary -->
+                                        <table width="100%" cellpadding="12" cellspacing="0" border="0" style="margin-top: 25px;">
+                                            <tr>
+                                                <td style="font-size: 15px; color: #888888; border-bottom: 1px solid #f0f0f0;">Subtotal:</td>
+                                                <td style="font-size: 15px; color: #1a1a1a; text-align: right; border-bottom: 1px solid #f0f0f0;">{{currency}} {{subtotal}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 15px; color: #888888; padding: 12px 0; border-bottom: 2px solid #e1e8ed;">Platform Fee (2.5%):</td>
+                                                <td style="font-size: 15px; color: #1a1a1a; text-align: right; padding: 12px 0; border-bottom: 2px solid #e1e8ed;">{{currency}} {{platformFee}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 20px; color: #1a1a1a; font-weight: 700; padding-top: 18px;">Total Paid:</td>
+                                                <td style="font-size: 24px; color: #27ae60; font-weight: 700; text-align: right; padding-top: 18px;">{{currency}} {{amount}}</td>
+                                            </tr>
+                                        </table>
+                                        
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Success Banner -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #d4edda; border-left: 5px solid #28a745; border-radius: 8px; margin-bottom: 30px;">
+                                <tr>
+                                    <td style="padding: 22px 28px;">
+                                        <p style="margin: 0; font-size: 15px; color: #155724; line-height: 1.7;">
+                                            ✅ <strong>Payment Successful!</strong> Your tickets have been sent in a separate email with QR codes for venue entry.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Support Info -->
+                            <p style="margin: 30px 0 0 0; font-size: 14px; color: #888888; line-height: 1.7; text-align: center;">
+                                Questions about your order?<br>
+                                Contact us at <a href="mailto:support@eventful.com" style="color: #667eea; text-decoration: none; font-weight: 600;">support@eventful.com</a> or call +234 800 000 0000
+                            </p>
+                            
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 35px 40px; text-align: center; border-top: 1px solid #e1e8ed;">
+                            <p style="margin: 0 0 10px 0; font-size: 14px; color: #555555;">
+                                This is an automated receipt for your records
+                            </p>
+                            <p style="margin: 0; font-size: 12px; color: #999999;">
+                                © {{year}} Eventful. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    
+</body>
+</html>

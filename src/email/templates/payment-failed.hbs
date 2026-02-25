@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Failed - {{eventTitle}}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7fa;">
+    
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f4f7fa; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #dc3545; padding: 50px 40px; text-align: center;">
+                            <h1 style="margin: 0 0 10px 0; color: #ffffff; font-size: 32px; font-weight: 700;">⚠️ Payment Failed</h1>
+                            <p style="margin: 0; color: #ffffff; font-size: 18px; opacity: 0.9;">We couldn't process your payment</p>
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 45px 40px;">
+                            
+                            <p style="margin: 0 0 10px 0; font-size: 18px; color: #1a1a1a; line-height: 1.6;">
+                                Hi <strong style="color: #dc3545;">{{userName}}</strong>,
+                            </p>
+                            <p style="margin: 0 0 35px 0; font-size: 16px; color: #555555; line-height: 1.7;">
+                                Unfortunately, we were unable to process your payment for tickets to <strong>{{eventTitle}}</strong>. But don't worry — your tickets are still available!
+                            </p>
+
+                            <!-- Error Details -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8d7da; border-left: 5px solid #dc3545; border-radius: 10px; margin-bottom: 35px;">
+                                <tr>
+                                    <td style="padding: 28px;">
+                                        <h3 style="margin: 0 0 18px 0; font-size: 20px; color: #721c24; font-weight: 700;">Transaction Details</h3>
+                                        
+                                        <table width="100%" cellpadding="10" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="font-size: 15px; color: #721c24; font-weight: 700; width: 130px;">Reference:</td>
+                                                <td style="font-size: 14px; color: #721c24; font-family: 'Courier New', monospace;">{{reference}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 15px; color: #721c24; font-weight: 700; vertical-align: top;">Reason:</td>
+                                                <td style="font-size: 15px; color: #721c24; line-height: 1.6;">{{reason}}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Troubleshooting Steps -->
+                            <h3 style="margin: 0 0 25px 0; font-size: 22px; color: #1a1a1a; font-weight: 700;">How to Fix This</h3>
+                            
+                            <!-- Step 1 -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f9fafb; border-radius: 10px; margin-bottom: 15px; border: 1px solid #e1e8ed;">
+                                <tr>
+                                    <td style="padding: 22px; vertical-align: top; width: 55px;">
+                                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; width: 38px; height: 38px; border-radius: 50%; text-align: center; line-height: 38px; font-weight: 800; font-size: 18px;">1</div>
+                                    </td>
+                                    <td style="padding: 22px 22px 22px 0;">
+                                        <p style="margin: 0 0 5px 0; font-size: 16px; color: #1a1a1a; font-weight: 700;">Check your card details</p>
+                                        <p style="margin: 0; font-size: 14px; color: #666666; line-height: 1.6;">Verify your card number, expiry date, and CVV are correct</p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Step 2 -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f9fafb; border-radius: 10px; margin-bottom: 15px; border: 1px solid #e1e8ed;">
+                                <tr>
+                                    <td style="padding: 22px; vertical-align: top; width: 55px;">
+                                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; width: 38px; height: 38px; border-radius: 50%; text-align: center; line-height: 38px; font-weight: 800; font-size: 18px;">2</div>
+                                    </td>
+                                    <td style="padding: 22px 22px 22px 0;">
+                                        <p style="margin: 0 0 5px 0; font-size: 16px; color: #1a1a1a; font-weight: 700;">Verify sufficient funds</p>
+                                        <p style="margin: 0; font-size: 14px; color: #666666; line-height: 1.6;">Ensure you have enough balance in your account</p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Step 3 -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f9fafb; border-radius: 10px; margin-bottom: 15px; border: 1px solid #e1e8ed;">
+                                <tr>
+                                    <td style="padding: 22px; vertical-align: top; width: 55px;">
+                                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; width: 38px; height: 38px; border-radius: 50%; text-align: center; line-height: 38px; font-weight: 800; font-size: 18px;">3</div>
+                                    </td>
+                                    <td style="padding: 22px 22px 22px 0;">
+                                        <p style="margin: 0 0 5px 0; font-size: 16px; color: #1a1a1a; font-weight: 700;">Try a different payment method</p>
+                                        <p style="margin: 0; font-size: 14px; color: #666666; line-height: 1.6;">Use another card or select bank transfer</p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Step 4 -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f9fafb; border-radius: 10px; margin-bottom: 35px; border: 1px solid #e1e8ed;">
+                                <tr>
+                                    <td style="padding: 22px; vertical-align: top; width: 55px;">
+                                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; width: 38px; height: 38px; border-radius: 50%; text-align: center; line-height: 38px; font-weight: 800; font-size: 18px;">4</div>
+                                    </td>
+                                    <td style="padding: 22px 22px 22px 0;">
+                                        <p style="margin: 0 0 5px 0; font-size: 16px; color: #1a1a1a; font-weight: 700;">Contact your bank</p>
+                                        <p style="margin: 0; font-size: 14px; color: #666666; line-height: 1.6;">Your bank may have declined the transaction for security reasons</p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Reassurance Banner -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e7f3ff; border-left: 5px solid #0066cc; border-radius: 8px; margin-bottom: 35px;">
+                                <tr>
+                                    <td style="padding: 25px 28px;">
+                                        <p style="margin: 0; font-size: 15px; color: #004085; line-height: 1.7;">
+                                            <strong>Don't worry!</strong> Your tickets are still available and haven't been sold to anyone else. You can try purchasing again at any time.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- CTA Button -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td align="center" style="padding: 25px 0;">
+                                        <a href="{{retryLink}}" style="display: inline-block; background-color: #28a745; color: #ffffff; text-decoration: none; padding: 17px 55px; border-radius: 35px; font-size: 17px; font-weight: 700; box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);">Try Again Now</a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 25px 0 0 0; font-size: 14px; color: #888888; text-align: center; line-height: 1.6;">
+                                Still having issues? We're here to help!<br>
+                                Contact <a href="mailto:support@eventful.com" style="color: #667eea; text-decoration: none; font-weight: 600;">support@eventful.com</a> or call +234 800 000 0000
+                            </p>
+                            
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 35px 40px; text-align: center; border-top: 1px solid #e1e8ed;">
+                            <p style="margin: 0 0 10px 0; font-size: 14px; color: #555555;">
+                                Need assistance? We're here to help!
+                            </p>
+                            <p style="margin: 0; font-size: 12px; color: #999999;">
+                                © {{year}} Eventful. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    
+</body>
+</html>

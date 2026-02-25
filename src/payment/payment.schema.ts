@@ -29,10 +29,10 @@ export class TicketPurchase {
 @Schema({ _id: false })
 export class Fees {
   @Prop({ required: true, default: 0, min: 0 })
-  platform: number; // Eventful platform fee
+  platform: number; // Platform fee (charged to customer)
 
   @Prop({ required: true, default: 0, min: 0 })
-  paystack: number; // Paystack transaction fee
+  paystack: number; // Paystack transaction fee (absorbed by platform)
 }
 
 // Paystack payment details subdocument
@@ -47,11 +47,17 @@ export class PaystackDetails {
   @Prop()
   authorizationCode?: string; // For recurring payments
 
+  @Prop()
+  authorization_code?: string; // Alternative field name
+
   @Prop({ enum: ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'] })
   channel?: string;
 
   @Prop()
   cardType?: string; // visa, mastercard, verve
+
+  @Prop()
+  card_type?: string; // Alternative field name
 
   @Prop()
   last4?: string; // Last 4 digits of card
@@ -125,6 +131,22 @@ export class Payment {
   @Prop()
   failureReason?: string; // If payment failed
 
+  // Webhook tracking
+  @Prop({ default: false })
+  isWebhookProcessed?: boolean;
+
+  @Prop()
+  webhookProcessedAt?: Date;
+
+  @Prop({ default: 0 })
+  attempts?: number; // Payment verification attempts
+
+  @Prop({ type: Object, default: {} })
+  paystackResponse?: any; // Store full Paystack response
+
+  @Prop({ default: false })
+  needsManualReview?: boolean; // Flag for failed ticket creation
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -138,71 +160,75 @@ PaymentSchema.index({ userId: 1, status: 1 });
 PaymentSchema.index({ eventId: 1, status: 1 });
 PaymentSchema.index({ userId: 1, eventId: 1 });
 PaymentSchema.index({ status: 1, createdAt: -1 });
-PaymentSchema.index({ 'paystack.reference': 1 }, { unique: true });
+// PaymentSchema.index({ 'paystack.reference': 1 }, { unique: true });
 
 // ==================== VIRTUAL FIELDS ====================
 // Subtotal (amount before fees)
-PaymentSchema.virtual('subtotal').get(function() {
+PaymentSchema.virtual('subtotal').get(function () {
   return this.amount - this.fees.platform - this.fees.paystack;
 });
 
 // Total tickets purchased
-PaymentSchema.virtual('totalTickets').get(function() {
+PaymentSchema.virtual('totalTickets').get(function () {
   return this.tickets.reduce((total, ticket) => total + ticket.quantity, 0);
 });
 
 // Check if payment is successful
-PaymentSchema.virtual('isPaid').get(function() {
+PaymentSchema.virtual('isPaid').get(function () {
   return this.status === 'success';
 });
 
 // Check if payment is pending
-PaymentSchema.virtual('isPending').get(function() {
+PaymentSchema.virtual('isPending').get(function () {
   return this.status === 'pending';
 });
 
 // ==================== METHODS ====================
-PaymentSchema.methods.toJSON = function() {
+PaymentSchema.methods.toJSON = function () {
   const obj = this.toObject({ virtuals: true });
   delete obj.__v;
   return obj;
 };
 
 // Method to mark payment as successful
-PaymentSchema.methods.markAsSuccessful = function(paystackResponse: any) {
+PaymentSchema.methods.markAsSuccessful = function (paystackResponse: any) {
   this.status = 'success';
   this.paidAt = new Date();
-  
+
   // Update Paystack details
   if (paystackResponse.channel) {
     this.paystack.channel = paystackResponse.channel;
   }
   if (paystackResponse.authorization?.card_type) {
     this.paystack.cardType = paystackResponse.authorization.card_type;
+    this.paystack.card_type = paystackResponse.authorization.card_type;
   }
   if (paystackResponse.authorization?.last4) {
     this.paystack.last4 = paystackResponse.authorization.last4;
   }
   if (paystackResponse.authorization?.authorization_code) {
-    this.paystack.authorizationCode = paystackResponse.authorization.authorization_code;
+    this.paystack.authorizationCode =
+      paystackResponse.authorization.authorization_code;
+    this.paystack.authorization_code =
+      paystackResponse.authorization.authorization_code;
   }
   if (paystackResponse.ip_address) {
     this.paystack.ipAddress = paystackResponse.ip_address;
   }
-  
+
   return this.save();
 };
 
 // Method to mark payment as failed
-PaymentSchema.methods.markAsFailed = function(reason: string) {
+PaymentSchema.methods.markAsFailed = function (reason: string) {
   this.status = 'failed';
   this.failureReason = reason;
-  
+
   return this.save();
 };
 
 // Method to refund payment
-PaymentSchema.methods.refund = function(amount?: number, reason?: string) {
+PaymentSchema.methods.refund = function (amount?: number, reason?: string) {
   if (this.status !== 'success') {
     throw new Error('Can only refund successful payments');
   }
@@ -211,77 +237,49 @@ PaymentSchema.methods.refund = function(amount?: number, reason?: string) {
   this.refundedAt = new Date();
   this.refundAmount = amount || this.amount;
   this.refundReason = reason;
-  
+
   return this.save();
 };
 
 // ==================== STATIC METHODS ====================
 // Calculate platform fee (e.g., 2.5% of subtotal)
-PaymentSchema.statics.calculatePlatformFee = function(subtotal: number): number {
+PaymentSchema.statics.calculatePlatformFee = function (subtotal: number): number {
   const feePercentage = 0.025; // 2.5%
-  return Math.round(subtotal * feePercentage * 100) / 100;
+  return Math.round(subtotal * feePercentage);
 };
 
 // Calculate Paystack fee (1.5% + 100 NGN, capped at 2000 NGN)
-PaymentSchema.statics.calculatePaystackFee = function(amount: number): number {
+// This is for internal calculation - NOT charged to customer
+PaymentSchema.statics.calculatePaystackFee = function (amount: number): number {
   const percentage = 0.015; // 1.5%
   const fixedFee = 100; // 100 NGN
   const cap = 2000; // 2000 NGN cap
-  
-  const fee = (amount * percentage) + fixedFee;
-  return Math.min(Math.round(fee * 100) / 100, cap);
+
+  const fee = amount * percentage + fixedFee;
+  return Math.min(Math.round(fee), cap);
 };
 
-// Calculate total amount including fees
-// PaymentSchema.statics.calculateTotalAmount = function(subtotal: number): {
-//   subtotal: number;
-//   platformFee: number;
-//   paystackFee: number;
-//   total: number;
-// } {
-//   const platformFee = this.calculatePlatformFee(subtotal);
-//   const amountWithPlatformFee = subtotal + platformFee;
-//   const paystackFee = this.calculatePaystackFee(amountWithPlatformFee);
-//   const total = amountWithPlatformFee + paystackFee;
-
-//   return {
-//     subtotal,
-//     platformFee,
-//     paystackFee,
-//     total: Math.round(total * 100) / 100,
-//   };
-// };
-
 // ==================== PRE-SAVE HOOKS ====================
-PaymentSchema.pre('save', function(next) {
-  // Validate that amount matches ticket prices + fees
-  const ticketTotal = this.tickets.reduce(
-    (total, ticket) => total + (ticket.quantity * ticket.unitPrice),
-    0
-  );
-
-  const expectedTotal = ticketTotal + this.fees.platform + this.fees.paystack;
-  const difference = Math.abs(this.amount - expectedTotal);
-
-  // Allow small rounding differences (up to 1 NGN)
-  if (difference > 1) {
-      throw new Error('Payment amount does not match ticket prices plus fees');
+PaymentSchema.pre('save', function () {
+  // Increment verification attempts
+  if (this.isModified('status') && this.status === 'success') {
+    this.attempts = (this.attempts || 0) + 1;
   }
 });
 
 // ==================== POST-SAVE HOOKS ====================
-PaymentSchema.post('save', function(doc, next) {
+PaymentSchema.post('save', function (doc, next) {
   // Trigger notifications or webhooks
   if (doc.status === 'success' && doc.paidAt) {
     // TODO: Send payment confirmation email
     // TODO: Trigger ticket generation
     console.log(`Payment ${doc._id} successful for user ${doc.userId}`);
   }
-  
+
   if (doc.status === 'failed') {
     // TODO: Send payment failure notification
     console.log(`Payment ${doc._id} failed: ${doc.failureReason}`);
   }
-  
+
   next();
 });

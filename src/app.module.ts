@@ -9,6 +9,12 @@ import { EventModule } from './event/event.module';
 import { TicketModule } from './ticket/ticket.module';
 import { PaymentModule } from './payment/payment.module';
 import { LogTokenMiddleware } from './auth/middleware/log-token.middleware';
+import { EmailModule } from './email/email.module';
+import { ReminderModule } from './reminder/reminder.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { CacheModule } from '@nestjs/cache-manager';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -22,14 +28,19 @@ import { LogTokenMiddleware } from './auth/middleware/log-token.middleware';
       }),
       inject: [ConfigService],
     }),
+    ScheduleModule.forRoot(),
+    ThrottlerModule.forRoot([{ ttl: 60, limit: 100 }]), // 100 requests per minute
     UsersModule,
     AuthModule,
     EventModule,
     TicketModule,
     PaymentModule,
+    EmailModule,
+    ReminderModule,
+    CacheModule.register({ isGlobal: true, ttl: 60 }),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

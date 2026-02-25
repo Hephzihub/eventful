@@ -34,6 +34,8 @@ import {
 } from '@nestjs/swagger';
 import { UploadService } from 'src/upload/upload.service';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
+import { use } from 'passport';
 
 @ApiTags('Events')
 @Controller('events')
@@ -50,6 +52,8 @@ export class EventController {
    * Public - anyone can browse
    */
   @Public()
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(120) // Cache for 2 minutes
   @Get()
   @ApiOperation({ summary: 'Get all published events' })
   @ApiResponse({ status: 200, description: 'List of published events' })
@@ -62,6 +66,8 @@ export class EventController {
    * Public
    */
   @Public()
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(120) // Cache for 2 minutes
   @Get('featured')
   @ApiOperation({ summary: 'Get featured events' })
   @ApiQuery({
@@ -185,6 +191,7 @@ export class EventController {
   @Post()
   @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Create a new event (starts as draft)' })
+  @ApiBody({ type: CreateEventDto })
   @ApiResponse({ status: 201, description: 'Event created successfully' })
   @ApiResponse({ status: 400, description: 'Validation failed' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -202,6 +209,8 @@ export class EventController {
    * Public - but draft events only visible to creator
    */
   @Public()
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(120) // Cache for 2 minutes
   @Get('slug/:slug')
   @ApiOperation({ summary: 'Get event by slug' })
   @ApiParam({ name: 'slug', description: 'URL-friendly event identifier' })
@@ -241,6 +250,7 @@ export class EventController {
   @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Add a ticket tier to an event' })
   @ApiParam({ name: 'id', description: 'MongoDB ObjectId of the event' })
+  @ApiBody({ type: AddTicketTierDto })
   @ApiResponse({ status: 201, description: 'Tier added successfully' })
   @ApiResponse({ status: 400, description: 'Would exceed capacity or invalid dates' })
   @ApiResponse({ status: 404, description: 'Event not found' })
@@ -263,6 +273,7 @@ export class EventController {
   @ApiOperation({ summary: 'Update a ticket tier' })
   @ApiParam({ name: 'id',     description: 'MongoDB ObjectId of the event' })
   @ApiParam({ name: 'tierId', description: 'MongoDB ObjectId of the ticket tier' })
+  @ApiBody({ type: UpdateTicketTierDto })
   @ApiResponse({ status: 200, description: 'Tier updated successfully' })
   @ApiResponse({ status: 400, description: 'Quantity below sold count' })
   @ApiResponse({ status: 404, description: 'Event or tier not found' })
@@ -325,6 +336,7 @@ export class EventController {
   @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Update an event' })
   @ApiParam({ name: 'id', description: 'MongoDB ObjectId of the event' })
+  @ApiBody({ type: UpdateEventDto })
   @ApiResponse({ status: 200, description: 'Event updated successfully' })
   @ApiResponse({ status: 400, description: 'Validation failed or business rule violated' })
   @ApiResponse({ status: 403, description: 'Forbidden — not the event creator' })
@@ -367,5 +379,42 @@ export class EventController {
   @ApiResponse({ status: 404, description: 'Event not found' })
   async getEventById(@Param('id') id: string, @CurrentUser() user?: any) {
     return this.eventService.getEventById(id, user?._id);
+  }
+
+  /**
+   * Get sharable links for an event
+   * Public — only works for published events
+   */
+  @Public()
+  @Get(':id/share')
+  @ApiOperation({
+    summary: 'Get shareable links for an event',
+    description:
+      'Returns a shareable URL and pre-built share links for Twitter, Facebook, WhatsApp, and LinkedIn. Only available for published events.',
+  })
+  @ApiParam({ name: 'id', description: 'MongoDB ObjectId of the event' })
+  @ApiResponse({
+    status: 200,
+    description: 'Shareable links generated',
+    schema: {
+      example: {
+        shareUrl: 'https://eventful.com/events/my-concert-2025',
+        meta: {
+          title: 'My Concert 2025',
+          description: 'An amazing concert experience',
+          image: 'https://res.cloudinary.com/example/image/upload/v1/events/img.jpg',
+        },
+        platforms: {
+          twitter: 'https://twitter.com/intent/tweet?text=...&url=...',
+          facebook: 'https://www.facebook.com/sharer/sharer.php?u=...',
+          whatsapp: 'https://wa.me/?text=...',
+          linkedin: 'https://www.linkedin.com/sharing/share-offsite/?url=...',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Event not found or not published' })
+  async getEventShareLink(@Param('id') id: string) {
+    return this.eventService.getSharableLinks(id);
   }
 }

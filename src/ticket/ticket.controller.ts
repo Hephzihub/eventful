@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Body,
   Param,
   Query,
@@ -14,6 +15,7 @@ import {
   ApiResponse,
   ApiParam,
   ApiBearerAuth,
+  ApiBody,
 } from '@nestjs/swagger';
 import { TicketService } from './ticket.service';
 import { PurchaseTicketDto } from './dto/purchase-ticket.dto';
@@ -55,6 +57,7 @@ export class TicketController {
       },
     },
   })
+  @ApiBody({ type: PurchaseTicketDto })
   @ApiResponse({ status: 400, description: 'Validation failed (sold out, sales ended, etc.)' })
   @ApiResponse({ status: 404, description: 'Event or tier not found' })
   async validatePurchase(
@@ -246,6 +249,7 @@ export class TicketController {
       },
     },
   })
+  @ApiBody({ type: ScanTicketDto })
   @ApiResponse({ status: 400, description: 'Invalid QR code' })
   @ApiResponse({
     status: 403,
@@ -352,5 +356,103 @@ export class TicketController {
     @CurrentUser() user: any,
   ) {
     return this.ticketsService.getTicketStats(eventId, user._id);
+  }
+
+  // ==================== GET USER REMINDERS ====================
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/reminders')
+  @ApiBearerAuth('JWT')
+  @ApiOperation({
+    summary: 'Get reminder intervals for a ticket',
+    description: 'Returns the eventee\'s configured reminder hours for their ticket.',
+  })
+  @ApiParam({ name: 'id', description: 'MongoDB ObjectId of the ticket' })
+  @ApiResponse({
+    status: 200,
+    description: 'Reminder intervals for this ticket',
+    schema: {
+      example: {
+        ticketId: '507f191e810c19729de860ea',
+        ticketNumber: 'TKT-2025-ABC12',
+        event: { title: 'My Concert', 'schedule.startDate': '2025-08-15T18:00:00Z' },
+        intervals: [168, 24, 1],
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: 'You do not own this ticket' })
+  @ApiResponse({ status: 404, description: 'Ticket not found' })
+  async getUserReminders(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.ticketsService.getUserReminders(id, user._id);
+  }
+
+  // ==================== SET USER REMINDERS ====================
+  @UseGuards(JwtAuthGuard)
+  @Put(':id/reminders')
+  @ApiBearerAuth('JWT')
+  @ApiOperation({
+    summary: 'Set personal reminder intervals for a ticket',
+    description:
+      'Eventee sets how many hours before the event they want to be reminded. E.g. [168, 24, 1] = 1 week, 1 day, and 1 hour before. Duplicates are removed and values are sorted.',
+  })
+  @ApiParam({ name: 'id', description: 'MongoDB ObjectId of the ticket' })
+  @ApiResponse({
+    status: 200,
+    description: 'Reminders updated',
+    schema: {
+      example: {
+        message: 'Reminders set successfully',
+        ticketId: '507f191e810c19729de860ea',
+        intervals: [168, 24, 1],
+      },
+    },
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        intervals: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'Hours before event to send reminders (e.g. [168, 24, 1])',
+          example: [168, 24, 1],
+        },
+      },
+      required: ['intervals'],
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Ticket is not valid' })
+  @ApiResponse({ status: 403, description: 'You do not own this ticket' })
+  @ApiResponse({ status: 404, description: 'Ticket not found' })
+  async setUserReminders(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body('intervals') intervals: number[],
+  ) {
+    return this.ticketsService.setUserReminders(id, user._id, intervals);
+  }
+
+  // ==================== CLEAR USER REMINDERS ====================
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/reminders')
+  @ApiBearerAuth('JWT')
+  @ApiOperation({
+    summary: 'Clear all personal reminders for a ticket',
+    description: 'Removes all eventee-configured reminder intervals for the ticket.',
+  })
+  @ApiParam({ name: 'id', description: 'MongoDB ObjectId of the ticket' })
+  @ApiResponse({
+    status: 200,
+    description: 'Reminders cleared',
+    schema: {
+      example: {
+        message: 'Reminders cleared',
+        ticketId: '507f191e810c19729de860ea',
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: 'You do not own this ticket' })
+  @ApiResponse({ status: 404, description: 'Ticket not found' })
+  async clearUserReminders(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.ticketsService.clearUserReminders(id, user._id);
   }
 }

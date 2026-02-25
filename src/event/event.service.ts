@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   ConflictException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Event, EventDocument } from './event.schema';
@@ -17,6 +18,7 @@ import { AddTicketTierDto, UpdateTicketTierDto } from './dto/ticket-tier.dto';
 export class EventService {
   constructor(
     @InjectModel(Event.name) private eventModel: Model<EventDocument>,
+    private configService: ConfigService,
   ) {}
 
   // ==================== CREATE EVENT ====================
@@ -768,5 +770,32 @@ export class EventService {
     if (event.schedule.startDate <= new Date()) {
       throw new BadRequestException('Cannot publish event in the past');
     }
+  }
+
+  // ==================== Shaee EVENT ====================
+
+  async getSharableLinks(eventId: string) {
+    const event = await this.eventModel.findById(eventId);
+    if (!event || event.status !== 'published') throw new NotFoundException();
+
+    const baseUrl = this.configService.get('FRONTEND_URL');
+    const shareUrl = `${baseUrl}/events/${event.slug}`;
+    const text = encodeURIComponent(`Check out ${event.title} on Eventful!`);
+    const url = encodeURIComponent(shareUrl);
+
+    return {
+      shareUrl,
+      meta: {
+        title: event.title,
+        description: event.description,
+        image: event.images?.[0] ?? null,
+      },
+      platforms: {
+        twitter: `https://twitter.com/intent/tweet?text=${text}&url=${url}`,
+        facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+        whatsapp: `https://wa.me/?text=${text}%20${url}`,
+        linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
+      },
+    };
   }
 }

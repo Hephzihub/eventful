@@ -516,4 +516,77 @@ export class TicketService {
       qrCodeImage, // Base64 data URL
     };
   }
+
+  // ==================== SET USER REMINDER INTERVALS ====================
+  async setUserReminders(ticketId: string, userId: string, intervals: number[]) {
+    const ticket = await this.ticketModel.findById(ticketId);
+
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
+    }
+
+    if (ticket.userId.toString() !== userId) {
+      throw new ForbiddenException('You do not own this ticket');
+    }
+
+    if (ticket.status !== 'valid') {
+      throw new BadRequestException('Can only set reminders on valid tickets');
+    }
+
+    const validIntervals = intervals.filter((h) => h > 0);
+    ticket.userReminderIntervals = [...new Set(validIntervals)].sort(
+      (a, b) => b - a,
+    );
+    await ticket.save();
+
+    return {
+      message: 'Reminders set successfully',
+      ticketId: ticket._id,
+      intervals: ticket.userReminderIntervals,
+    };
+  }
+
+  // ==================== CLEAR USER REMINDER INTERVALS ====================
+  async clearUserReminders(ticketId: string, userId: string) {
+    const ticket = await this.ticketModel.findById(ticketId);
+
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
+    }
+
+    if (ticket.userId.toString() !== userId) {
+      throw new ForbiddenException('You do not own this ticket');
+    }
+
+    ticket.userReminderIntervals = [];
+    await ticket.save();
+
+    return {
+      message: 'Reminders cleared',
+      ticketId: ticket._id,
+    };
+  }
+
+  // ==================== GET USER REMINDER INTERVALS ====================
+  async getUserReminders(ticketId: string, userId: string) {
+    const ticket = await this.ticketModel
+      .findById(ticketId)
+      .populate('eventId', 'title schedule.startDate')
+      .exec();
+
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
+    }
+
+    if (ticket.userId.toString() !== userId) {
+      throw new ForbiddenException('You do not own this ticket');
+    }
+
+    return {
+      ticketId: ticket._id,
+      ticketNumber: ticket.ticketNumber,
+      event: ticket.eventId,
+      intervals: ticket.userReminderIntervals,
+    };
+  }
 }

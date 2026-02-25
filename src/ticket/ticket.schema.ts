@@ -73,6 +73,9 @@ export class Ticket {
   @Prop({ trim: true })
   attendeePhone?: string;
 
+  @Prop({ type: [Number], default: [] })
+  userReminderIntervals: number[]; // Hours before event, e.g. [1, 24, 168]
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;

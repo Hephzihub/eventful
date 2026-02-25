@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -9,6 +10,7 @@ import { Model } from 'mongoose';
 import { User, UserDocument } from 'src/users/user.schema';
 import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from './dto/register.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class AuthService {
@@ -76,5 +78,27 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
     return user;
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (dto.profile) {
+      if (dto.profile.fullName !== undefined) {
+        user.profile.fullName = dto.profile.fullName;
+      }
+      if (dto.profile.phone !== undefined) {
+        user.profile.phone = dto.profile.phone;
+      }
+      if (dto.profile.avatar !== undefined) {
+        user.profile.avatar = dto.profile.avatar;
+      }
+    }
+
+    await user.save();
+    return { message: 'Profile updated successfully', user: user.toJSON() };
   }
 }
