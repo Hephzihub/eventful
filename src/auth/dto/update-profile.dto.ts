@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsUrl, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -20,20 +20,11 @@ class UpdateProfileDetailsDto {
   @IsString()
   @IsOptional()
   phone?: string;
-
-  @ApiProperty({
-    description: 'URL of the user avatar image',
-    example: 'https://res.cloudinary.com/example/image/upload/v1/avatars/user.jpg',
-    required: false,
-  })
-  @IsUrl()
-  @IsOptional()
-  avatar?: string;
 }
 
 export class UpdateProfileDto {
   @ApiProperty({
-    description: 'Profile fields to update',
+    description: 'Profile fields to update (fullName and/or phone)',
     type: UpdateProfileDetailsDto,
     required: false,
   })

@@ -93,12 +93,21 @@ export class AuthService {
       if (dto.profile.phone !== undefined) {
         user.profile.phone = dto.profile.phone;
       }
-      if (dto.profile.avatar !== undefined) {
-        user.profile.avatar = dto.profile.avatar;
-      }
     }
 
     await user.save();
     return { message: 'Profile updated successfully', user: user.toJSON() };
+  }
+
+  async updateAvatar(userId: string, avatarUrl: string) {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    user.profile.avatar = avatarUrl;
+    await user.save();
+
+    return { message: 'Avatar updated successfully', avatarUrl };
   }
 }

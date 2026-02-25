@@ -133,21 +133,29 @@ describe('AuthService', () => {
       expect(result.message).toBe('Profile updated successfully');
     });
 
-    it('updates only avatar when only avatar is supplied', async () => {
-      const doc = makeUserDoc();
-      userModelMock.findById.mockResolvedValue(doc);
-      await service.updateProfile('uid-1', {
-        profile: { avatar: 'https://cdn.example.com/img.jpg' },
-      } as any);
-      expect(doc.profile.avatar).toBe('https://cdn.example.com/img.jpg');
-      expect(doc.profile.fullName).toBe('Test User');
-    });
-
     it('throws NotFoundException when user does not exist', async () => {
       userModelMock.findById.mockResolvedValue(null);
       await expect(
         service.updateProfile('bad-id', { profile: {} } as any),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('updateAvatar', () => {
+    it('saves the avatar URL and returns message + URL', async () => {
+      const doc = makeUserDoc();
+      userModelMock.findById.mockResolvedValue(doc);
+      const url = 'https://res.cloudinary.com/demo/image/upload/v1/avatars/user.jpg';
+      const result = await service.updateAvatar('uid-1', url);
+      expect(doc.profile.avatar).toBe(url);
+      expect(doc.save).toHaveBeenCalled();
+      expect(result.message).toBe('Avatar updated successfully');
+      expect(result.avatarUrl).toBe(url);
+    });
+
+    it('throws NotFoundException when user does not exist', async () => {
+      userModelMock.findById.mockResolvedValue(null);
+      await expect(service.updateAvatar('bad-id', 'https://cdn.example.com/img.jpg')).rejects.toThrow(NotFoundException);
     });
   });
 });

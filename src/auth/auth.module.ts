@@ -7,11 +7,13 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { UserSchema } from 'src/users/user.schema';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { UploadModule } from 'src/upload/upload.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
     PassportModule,
+    UploadModule,
     JwtModule.registerAsync({
       useFactory: async () => {
         const secret = process.env.JWT_SECRET;

@@ -27,6 +27,28 @@ export class UploadService {
     return result.secure_url;
   }
 
+  async uploadAvatarImage(file: Express.Multer.File): Promise<string> {
+    if (!file) {
+      throw new BadRequestException('No file provided');
+    }
+
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.mimetype)) {
+      throw new BadRequestException('Only JPEG, PNG, and WebP images are allowed');
+    }
+
+    const result = await this.cloudinaryService.uploadFile(file, {
+      folder: 'avatars',
+      transformation: [
+        { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+        { quality: 'auto' },
+        { fetch_format: 'auto' },
+      ],
+    });
+
+    return result.secure_url;
+  }
+
   async deleteImage(publicId: string): Promise<void> {
     await this.cloudinaryService.cloudinary.uploader.destroy(publicId);
   }

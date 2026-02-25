@@ -1,12 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { UploadService } from 'src/upload/upload.service';
 
 const mockAuthService = {
   register: jest.fn(),
   login: jest.fn(),
   getCurrentUser: jest.fn(),
   updateProfile: jest.fn(),
+  updateAvatar: jest.fn(),
+};
+
+const mockUploadService = {
+  uploadAvatarImage: jest.fn(),
 };
 
 describe('AuthController', () => {
@@ -15,7 +22,10 @@ describe('AuthController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: mockAuthService }],
+      providers: [
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: UploadService, useValue: mockUploadService },
+      ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
@@ -83,6 +93,29 @@ describe('AuthController', () => {
 
       expect(mockAuthService.updateProfile).toHaveBeenCalledWith('uid-1', dto);
       expect(result).toEqual(expected);
+    });
+  });
+
+  describe('uploadAvatar', () => {
+    it('uploads file and delegates to authService.updateAvatar', async () => {
+      const user = { _id: 'uid-1' };
+      const file = { originalname: 'photo.jpg', mimetype: 'image/jpeg', buffer: Buffer.from('') } as any;
+      const avatarUrl = 'https://res.cloudinary.com/demo/image/upload/v1/avatars/user.jpg';
+      const expected = { message: 'Avatar updated successfully', avatarUrl };
+
+      mockUploadService.uploadAvatarImage.mockResolvedValue(avatarUrl);
+      mockAuthService.updateAvatar.mockResolvedValue(expected);
+
+      const result = await controller.uploadAvatar(user, file);
+
+      expect(mockUploadService.uploadAvatarImage).toHaveBeenCalledWith(file);
+      expect(mockAuthService.updateAvatar).toHaveBeenCalledWith('uid-1', avatarUrl);
+      expect(result).toEqual(expected);
+    });
+
+    it('throws BadRequestException when no file is provided', async () => {
+      const user = { _id: 'uid-1' };
+      await expect(controller.uploadAvatar(user, undefined as any)).rejects.toThrow(BadRequestException);
     });
   });
 });
