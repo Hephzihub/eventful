@@ -55,7 +55,7 @@ export class AuthService {
     return null;
   }
 
-  async validateUserById(userId: string): Promise<User | null> {
+  async validateUserById(userId: string): Promise<UserDocument | null> {
     return this.userModel.findById(userId);
   }
 

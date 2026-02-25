@@ -20,6 +20,8 @@ export class JwtStrategy extends PassportStrategy(Strategy){
     if (!user) {
       throw new UnauthorizedException();
     }
-    return user;
+    const plain = user.toObject();
+    plain._id = plain._id.toString();
+    return plain;
   }
 }
