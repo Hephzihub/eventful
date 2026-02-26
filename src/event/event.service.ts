@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Event, EventDocument, TicketTier } from './event.schema';
+import { Ticket, TicketDocument } from 'src/ticket/ticket.schema';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { QueryEventsDto } from './dto/query-events.dto';
@@ -18,6 +19,7 @@ import { AddTicketTierDto, UpdateTicketTierDto } from './dto/ticket-tier.dto';
 export class EventService {
   constructor(
     @InjectModel(Event.name) private eventModel: Model<EventDocument>,
+    @InjectModel(Ticket.name) private ticketModel: Model<TicketDocument>,
     private configService: ConfigService,
   ) {}
 
@@ -412,6 +414,52 @@ export class EventService {
         limit,
         totalPages: Math.ceil(total / limit),
       },
+    };
+  }
+
+  // ==================== GET USER'S EVENTS (VIA TICKETS) ====================
+  async getUserEvents(userId: string): Promise<{ events: any[]; total: number }> {
+    // Find all active tickets for the user (exclude cancelled)
+    const tickets = await this.ticketModel
+      .find({
+        userId: new Types.ObjectId(userId),
+        status: { $ne: 'cancelled' },
+      })
+      .select('eventId tierId status')
+      .lean();
+
+    if (tickets.length === 0) {
+      return { events: [], total: 0 };
+    }
+
+    // Get unique event IDs
+    const eventIds = [
+      ...new Set(tickets.map((t) => t.eventId.toString())),
+    ].map((id) => new Types.ObjectId(id));
+
+    // Count tickets per event for the user
+    const ticketCountByEvent = tickets.reduce<Record<string, number>>(
+      (acc, t) => {
+        const key = t.eventId.toString();
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      },
+      {},
+    );
+
+    // Fetch those events sorted by start date (upcoming first)
+    const events = await this.eventModel
+      .find({ _id: { $in: eventIds } })
+      .sort({ 'schedule.startDate': 1 })
+      .populate('creatorId', 'email profile.fullName')
+      .lean();
+
+    return {
+      events: events.map((e) => ({
+        ...e,
+        ticketCount: ticketCountByEvent[e._id.toString()] || 0,
+      })),
+      total: events.length,
     };
   }
 

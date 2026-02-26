@@ -112,16 +112,11 @@ export class EventController {
   @ApiResponse({ status: 200, description: 'User ticket events' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getUserEvents(@CurrentUser() user: any) {
-    // This will be implemented when we create the Tickets module
-    return {
-      message: 'This endpoint will show events you have tickets for',
-      userId: user._id,
-    };
+    return this.eventService.getUserEvents(user._id);
   }
 
   // ==================== CREATOR-ONLY ENDPOINTS ====================
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('creator')
   @Post(':id/images')

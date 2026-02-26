@@ -3,12 +3,14 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { EventService } from './event.service';
 import { EventController } from './event.controller';
 import { Event, EventSchema } from './event.schema';
+import { Ticket, TicketSchema } from 'src/ticket/ticket.schema';
 import { UploadModule } from 'src/upload/upload.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Event.name, schema: EventSchema },
+      { name: Ticket.name, schema: TicketSchema },
     ]),
     UploadModule,
   ],
